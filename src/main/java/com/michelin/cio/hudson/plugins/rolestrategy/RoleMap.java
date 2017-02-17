@@ -57,8 +57,9 @@ import org.acegisecurity.userdetails.UserDetails;
 import org.jenkinsci.plugins.rolestrategy.Settings;
 import org.springframework.dao.DataAccessException;
 
+
 /**
- * Class holding a map for each kind of {@link AccessControlled} object, associating
+ * Class holding a map for each kind of {@link AccessControlled} Object, associating
  * each {@link Role} with the concerned {@link User}s/groups.
  * @author Thomas Maurel
  */
@@ -67,7 +68,7 @@ public class RoleMap {
   /** Map associating each {@link Role} with the concerned {@link User}s/groups. */
   private final SortedMap <Role,Set<String>> grantedRoles;
 
-  private static final Logger LOGGER = Logger.getLogger(RoleMap.class.getName());
+  protected static final Logger LOGGER = Logger.getLogger(RoleMap.class.getName());
   
   private final Cache<String, UserDetails> cache = CacheBuilder.newBuilder()
           .softValues()
@@ -88,23 +89,31 @@ public class RoleMap {
    * @return True if the sid's granted permission
    */
   private boolean hasPermission(String sid, Permission p, RoleType roleType, AccessControlled controlledItem) {
+    LOGGER.log(Level.INFO, "OUT: RoleMap.hasPermission(sid={0}, p={1}, roleType={2}, controlledItem={3}): start", new Object[] {sid.hashCode(), p, roleType, controlledItem} );
+    LOGGER.log(Level.INFO, "OUT: RoleMap.hasPermission(sid={0}, p={1}, roleType={2}, controlledItem={3}): role = getRolesHavingPermission(p))", new Object[] {sid.hashCode(), p, roleType, controlledItem} );
     for(Role role : getRolesHavingPermission(p)) {
-        
+      LOGGER.log(Level.INFO, "OUT: RoleMap.hasPermission(sid={0}, p={1}, roleType={2}, controlledItem={3}): role={4}", new Object[] {sid.hashCode(), p, roleType, controlledItem, role.getName().hashCode()} );
         if(this.grantedRoles.get(role).contains(sid)) {
+            LOGGER.log(Level.INFO, "OUT: RoleMap.hasPermission(sid={0}, p={1}, roleType={2}, controlledItem={3}): this.grantedRoles.get(role={4}).contains(sid={0})", new Object[] {sid.hashCode(), p, roleType, controlledItem, role.getName().hashCode()} );
             // Handle roles macro
             if (Macro.isMacro(role)) {
+                LOGGER.log(Level.INFO, "OUT: RoleMap.hasPermission(sid={0}, p={1}, roleType={2}, controlledItem={3}): Macro.isMacro(role)==true", new Object[] {sid.hashCode(), p, roleType, controlledItem} );
                 Macro macro = RoleMacroExtension.getMacro(role.getName());
                 if (macro != null) {
                     RoleMacroExtension macroExtension = RoleMacroExtension.getMacroExtension(macro.getName());
                     if (macroExtension.IsApplicable(roleType) && macroExtension.hasPermission(sid, p, roleType, controlledItem, macro)) {
+                        LOGGER.log(Level.INFO, "OUT: RoleMap.hasPermission(sid={0}, p={1}, roleType={2}, controlledItem={3}): return true", new Object[] {sid.hashCode(), p, roleType, controlledItem} );
                         return true;
                     }
                 }
             } // Default handling
             else {
+                LOGGER.log(Level.INFO, "OUT: RoleMap.hasPermission(sid={0}, p={1}, roleType={2}, controlledItem={3}): Macro.isMacro(role)==false", new Object[] {sid.hashCode(), p, roleType, controlledItem} );
+                LOGGER.log(Level.INFO, "OUT: RoleMap.hasPermission(sid={0}, p={1}, roleType={2}, controlledItem={3}): return true", new Object[] {sid.hashCode(), p, roleType, controlledItem} );
                 return true;
             }
         } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES) {
+            LOGGER.log(Level.INFO, "OUT: RoleMap.hasPermission(sid={0}, p={1}, roleType={2}, controlledItem={3}): Settings.TREAT_USER_AUTHORITIES_AS_ROLES", new Object[] {sid.hashCode(), p, roleType, controlledItem} );
             try {
                 UserDetails userDetails = cache.getIfPresent(sid);
                 if (userDetails == null) {
@@ -112,7 +121,9 @@ public class RoleMap {
                     cache.put(sid, userDetails);
                 }
                 for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
+                    LOGGER.log(Level.INFO, "OUT: RoleMap.hasPermission(sid={0}, p={1}, roleType={2}, controlledItem={3}): grantedAuthority.getAuthority().equals({4})", new Object[] {sid.hashCode(), p, roleType, controlledItem, role.getName().hashCode()} );
                     if (grantedAuthority.getAuthority().equals(role.getName())) {
+                        LOGGER.log(Level.INFO, "OUT: RoleMap.hasPermission(sid={0}, p={1}, roleType={2}, controlledItem={3}): return true", new Object[] {sid.hashCode(), p, roleType, controlledItem} );
                         return true;
                     }
                 }
@@ -129,6 +140,7 @@ public class RoleMap {
 
         // TODO: Handle users macro
     }
+    LOGGER.log(Level.INFO, "OUT: RoleMap.hasPermission(sid={0}, p={1}, roleType={2}, controlledItem={3}): return false", new Object[] {sid.hashCode(), p, roleType, controlledItem} );
     return false;
   }
 
@@ -137,6 +149,8 @@ public class RoleMap {
    * @return True if the {@link RoleMap} contains the given role
    */
   public boolean hasRole(Role role) {
+    LOGGER.log(Level.INFO, "OUT: RoleMap.hasRole(role={0}): start", role.getName().hashCode());
+    LOGGER.log(Level.INFO, "OUT: RoleMap.hasRole(role={0}): return this.grantedRoles.containsKey(role)", role.getName().hashCode());
     return this.grantedRoles.containsKey(role);
   }
 
@@ -145,6 +159,8 @@ public class RoleMap {
    * @return ACL for the current {@link RoleMap}
    */
   public SidACL getACL(RoleType roleType, AccessControlled controlledItem) {
+    LOGGER.log(Level.INFO, "OUT: RoleMap.getACL(roleType={0}, controlledItem={1}): start", new Object[]{roleType, controlledItem});
+    LOGGER.log(Level.INFO, "OUT: RoleMap.getACL(roleType={0}, controlledItem={1}): return new AclImpl(roleType, controlledItem)", new Object[]{roleType, controlledItem});
     return new AclImpl(roleType, controlledItem);
   }
 
@@ -153,6 +169,7 @@ public class RoleMap {
    * @param role The {@link Role} to add
    */
   public void addRole(Role role) {
+    LOGGER.log(Level.INFO, "OUT: RoleMap.addRole(role={0})", role.getName().hashCode());
     if(this.getRole(role.getName()) == null) {
       this.grantedRoles.put(role, new HashSet<String>());
     }
@@ -164,6 +181,7 @@ public class RoleMap {
    * @param sid The sid to assign
    */
   public void assignRole(Role role, String sid) {
+    LOGGER.log(Level.INFO, "OUT: RoleMap.assignRole(role={0}, sid={1})", new Object[] {role.getName().hashCode(), sid.hashCode()});
     if(this.hasRole(role)) {
       this.grantedRoles.get(role).add(sid);
     }
@@ -174,6 +192,7 @@ public class RoleMap {
    * @param role The {@link Role} for which you want to clear the sids
    */
   public void clearSidsForRole(Role role) {
+    LOGGER.log(Level.INFO, "OUT: RoleMap.clearSidsForRole(role={0})", role.getName().hashCode());
     if(this.hasRole(role)) {
       this.grantedRoles.get(role).clear();
     }
@@ -183,23 +202,29 @@ public class RoleMap {
    * Clear all the sids for each {@link Role} of the {@link RoleMap}.
    */
   public void clearSids() {
+    LOGGER.log(Level.INFO, "OUT: RoleMap.clearSids(): start");
     for(Map.Entry<Role, Set<String>> entry : this.grantedRoles.entrySet()) {
       Role role = entry.getKey();
+      LOGGER.log(Level.INFO, "OUT: RoleMap.clearSids(): this.clearSidsForRole(role={0})", role.getName().hashCode());
       this.clearSidsForRole(role);
     }
   }
 
   /**
-   * Get the {@link Role} object named after the given param.
+   * Get the {@link Role} Object named after the given param.
    * @param name The name of the {@link Role}
    * @return The {@link Role} named after the given param
    */
   public Role getRole(String name) {
+    LOGGER.log(Level.INFO, "OUT: RoleMap.getRole(name={0}): start", name.hashCode());
     for(Role role : this.getRoles()) {
+      LOGGER.log(Level.INFO, "OUT: RoleMap.getRole(name={0}): role={1}", new Object[] {name.hashCode(), role.getName().hashCode()});
       if(role.getName().equals(name)) {
+        LOGGER.log(Level.INFO, "OUT: RoleMap.getRole(name={0}): return role={1}", new Object[] {name.hashCode(), role.getName().hashCode()});
         return role;
       }
     }
+    LOGGER.log(Level.INFO, "OUT: RoleMap.getRole(name={0}): return null", name.hashCode());
     return null;
   }
 
@@ -208,6 +233,7 @@ public class RoleMap {
    * @return An unmodifiable sorted map containing the {@link Role}s and their associated sids
    */
   public SortedMap<Role, Set<String>> getGrantedRoles() {
+    LOGGER.log(Level.INFO, "OUT: RoleMap.getGrantedRoles()");
     return Collections.unmodifiableSortedMap(this.grantedRoles);
   }
 
@@ -216,6 +242,7 @@ public class RoleMap {
    * @return An unmodifiable set containing the {@link Role}s
    */
   public Set<Role> getRoles() {
+    LOGGER.log(Level.INFO, "OUT: RoleMap.getRoles()");
     return Collections.unmodifiableSet(this.grantedRoles.keySet());
   }
 
@@ -224,6 +251,7 @@ public class RoleMap {
    * @return A sorted set containing all the sids, minus the {@code Anonymous} sid
    */
   public SortedSet<String> getSids() {
+    LOGGER.log(Level.INFO, "OUT: RoleMap.getSids()");
     return this.getSids(false);
   }
 
@@ -233,14 +261,17 @@ public class RoleMap {
    * @return A sorted set containing all the sids
    */
   public SortedSet<String> getSids(Boolean includeAnonymous) {
+    LOGGER.log(Level.INFO, "OUT: RoleMap.getSids(includeAnonymous={0}): start", includeAnonymous);
     TreeSet<String> sids = new TreeSet<String>();
     for(Map.Entry entry : this.grantedRoles.entrySet()) {
+      LOGGER.log(Level.INFO, "OUT: RoleMap.getSids(includeAnonymous={0}): sids.addAll({1})", new Object[]{includeAnonymous, (Set)entry.getValue()} );
       sids.addAll((Set)entry.getValue());
     }
     // Remove the anonymous sid if asked to
     if(!includeAnonymous) {
       sids.remove("anonymous");
     }
+    LOGGER.log(Level.INFO, "OUT: RoleMap.getSids(includeAnonymous={0}): return Collections.unmodifiableSortedSet(sids={1})", new Object[]{includeAnonymous, sids} );
     return Collections.unmodifiableSortedSet(sids);
   }
 
@@ -250,10 +281,14 @@ public class RoleMap {
    * @return A sorted set containing all the sids
    */
   public Set<String> getSidsForRole(String roleName) {
+    LOGGER.log(Level.INFO, "OUT: RoleMap.getSidsForRole(roleName={0}): start", roleName);
     Role role = this.getRole(roleName);
+    LOGGER.log(Level.INFO, "OUT: RoleMap.getSidsForRole(roleName={0}): role={1}", new Object[]{roleName, role.getName().hashCode()});
     if(role != null) {
+      LOGGER.log(Level.INFO, "OUT: RoleMap.getSidsForRole(roleName={0}): return Collections.unmodifiableSet(this.grantedRoles.get(role={1}))", new Object[]{roleName, role.getName().hashCode()});
       return Collections.unmodifiableSet(this.grantedRoles.get(role));
     }
+    LOGGER.log(Level.INFO, "OUT: RoleMap.getSidsForRole(roleName={0}): return null", roleName);
     return null;
   }
 
@@ -264,11 +299,14 @@ public class RoleMap {
    * @return A {@link RoleMap} containing only {@link Role}s matching the given name
    */
   public RoleMap newMatchingRoleMap(String namePattern) {
+    LOGGER.log(Level.INFO, "OUT: RoleMap.newMatchingRoleMap(namePattern={0}): start", namePattern);
     Set<Role> roles = getMatchingRoles(namePattern);
     SortedMap<Role, Set<String>> roleMap = new TreeMap<Role, Set<String>>();
     for(Role role : roles) {
+      LOGGER.log(Level.INFO, "OUT: RoleMap.newMatchingRoleMap(namePattern={0}): roleMap.put(role={1}, this.grantedRoles.get(role))", new Object[]{namePattern, role.getName().hashCode()});
       roleMap.put(role, this.grantedRoles.get(role));
     }
+    LOGGER.log(Level.INFO, "OUT: RoleMap.newMatchingRoleMap(namePattern={0}): return new RoleMap(roleMap=)", new Object[]{namePattern, roleMap});
     return new RoleMap(roleMap);
   }
 
@@ -278,12 +316,14 @@ public class RoleMap {
    * @return A Set of Roles holding the given permission
    */
   private Set<Role> getRolesHavingPermission(final Permission permission) {
+    LOGGER.log(Level.INFO, "OUT: RoleMap.getRolesHavingPermission(permission={0}): start", permission);
     final Set<Role> roles = new HashSet<Role>();
     final Set<Permission> permissions = new HashSet<Permission>();
     Permission p = permission;
 
     // Get the implying permissions
     for(; p!=null; p=p.impliedBy) {
+      LOGGER.log(Level.INFO, "OUT: RoleMap.getRolesHavingPermission(permission={0}): permissions.add(p={1})", new Object[]{permission, p} );
       permissions.add(p);
     }
     // Walk through the roles, and only add the roles having the given permission,
@@ -296,6 +336,7 @@ public class RoleMap {
       }
     };
 
+    LOGGER.log(Level.INFO, "OUT: RoleMap.getRolesHavingPermission(permission={0}): return roles=", new Object[]{permission, roles} );
     return roles;
   }
 
@@ -305,6 +346,7 @@ public class RoleMap {
    * @return A Set of Roles matching the given name
    */
   private Set<Role> getMatchingRoles(final String namePattern) {
+    LOGGER.log(Level.INFO, "OUT: RoleMap.getMatchingRoles(namePattern={0}): start", namePattern);
     final Set<Role> roles = new HashSet<Role>();
 
     // Walk through the roles and only add the Roles whose pattern matches the given string
@@ -317,11 +359,12 @@ public class RoleMap {
       }
     };
 
+    LOGGER.log(Level.INFO, "OUT: RoleMap.getMatchingRoles(namePattern={0}): return roles=", new Object[]{namePattern, roles} );
     return roles;
   }
 
   /**
-   * The Acl class that will delegate the permission check to the {@link RoleMap} object.
+   * The Acl class that will delegate the permission check to the {@link RoleMap} Object.
    */
   private final class AclImpl extends SidACL {
 
@@ -329,6 +372,7 @@ public class RoleMap {
     RoleType roleType;
 
     public AclImpl(RoleType roleType, AccessControlled item) {
+        LOGGER.log(Level.INFO, "OUT: RoleMap.AclImpl.AclImpl(roleType={0}, item={1}): constructor", new Object[]{roleType, item} );
         this.item = item;
         this.roleType = roleType;
     }
@@ -343,9 +387,12 @@ public class RoleMap {
     @SuppressFBWarnings(value = "NP_BOOLEAN_RETURN_NULL", justification = "As declared in Jenkins API")
     @Override
     protected Boolean hasPermission(Sid p, Permission permission) {
+      LOGGER.log(Level.INFO, "OUT: RoleMap.AclImpl.hasPermission(sid p={0}, permission={1}): start", new Object[]{p, permission});
       if(RoleMap.this.hasPermission(toString(p), permission, roleType, item)) {
+        LOGGER.log(Level.INFO, "OUT: RoleMap.AclImpl.hasPermission(sid p={0}, permission={1}): return true", new Object[]{p, permission});
         return true;
       }
+      LOGGER.log(Level.INFO, "OUT: RoleMap.AclImpl.hasPermission(sid p={0}, permission={1}): return null", new Object[]{p, permission});
       return null;
     }
   }
@@ -364,10 +411,12 @@ public class RoleMap {
      * Walk through the roles.
      */
     public void walk() {
+      LOGGER.log(Level.INFO, "OUT: RoleMap.RoleWalker.walk(): start");
       Set<Role> roles = RoleMap.this.getRoles();
       Iterator iter = roles.iterator();
       while (iter.hasNext()) {
         Role current = (Role) iter.next();
+        LOGGER.log(Level.INFO, "OUT: RoleMap.RoleWalker.walk(): perform(current={0})", current);
         perform(current);
       }
     }

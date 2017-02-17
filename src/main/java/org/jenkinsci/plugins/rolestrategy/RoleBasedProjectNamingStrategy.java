@@ -18,6 +18,9 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.regex.Pattern;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  * @author Kanstantsin Shautsou
  * @since 2.2.0
@@ -28,6 +31,8 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
 
     private final boolean forceExistingJobs;
 
+    private static final Logger LOGGER = Logger.getLogger(RoleBasedProjectNamingStrategy.class.getName());
+
     @DataBoundConstructor
     public RoleBasedProjectNamingStrategy(boolean forceExistingJobs) {
         this.forceExistingJobs = forceExistingJobs;
@@ -35,6 +40,7 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
 
     @Override
     public void checkName(String name) throws Failure {
+        LOGGER.log(Level.INFO, "OUT: RoleBasedProjectNamingStrategy.checkName({0}}): start", new Object[] {name} );
         boolean matches = false;
         ArrayList<String> badList = null;
         AuthorizationStrategy auth = Jenkins.getInstance().getAuthorizationStrategy();
@@ -43,7 +49,9 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
             //firstly check global role
             SortedMap<Role, Set<String>> gRole = rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL);
             for (SortedMap.Entry<Role, Set<String>> entry: gRole.entrySet()){
+                LOGGER.log(Level.INFO, "OUT: RoleBasedProjectNamingStrategy.checkName({0}}): Global Role: {1}", new Object[] {name, entry.getKey()} );
                 if (entry.getKey().hasPermission(Item.CREATE))
+                    LOGGER.log(Level.INFO, "OUT: RoleBasedProjectNamingStrategy.checkName({0}}): Global Role: {1}: return", new Object[] {name, entry.getKey()} );
                     return;
             }
             // check project role with pattern
@@ -51,13 +59,17 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
             badList = new ArrayList<String>(roles.size());
             for (SortedMap.Entry<Role, Set<String>> entry: roles.entrySet())  {
                 Role key = entry.getKey();
+                LOGGER.log(Level.INFO, "OUT: RoleBasedProjectNamingStrategy.checkName({0}}): Project Role: {1}", new Object[] {name, key} );
                 if (key.hasPermission(Item.CREATE)) {
                     String namePattern = key.getPattern().toString();
                     if (StringUtils.isNotBlank(namePattern) && StringUtils.isNotBlank(name)) {
+                        LOGGER.log(Level.INFO, "OUT: RoleBasedProjectNamingStrategy.checkName({0}}): Pattern.matches({1}, {0})", new Object[] {name, namePattern} );
                         if (Pattern.matches(namePattern, name)){
                             matches = true;
+                            LOGGER.log(Level.INFO, "OUT: RoleBasedProjectNamingStrategy.checkName({0}}): matches=true", new Object[] {name} );
                         } else {
                             badList.add(namePattern);
+                            LOGGER.log(Level.INFO, "OUT: RoleBasedProjectNamingStrategy.checkName({0}}): badList.add({1})", new Object[] {name, namePattern} );
                         }
                     }
                 }

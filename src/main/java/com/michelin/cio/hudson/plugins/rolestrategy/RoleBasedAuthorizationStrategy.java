@@ -71,6 +71,9 @@ import org.acegisecurity.acls.sid.PrincipalSid;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  * Role-based authorization strategy.
  * @author Thomas Maurel
@@ -83,7 +86,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public final static String MACRO_ROLE = "roleMacros";
   public final static String MACRO_USER  = "userMacros";
   
-
+  private static final Logger LOGGER = Logger.getLogger(RoleBasedAuthorizationStrategy.class.getName());
   
   /** {@link RoleMap}s associated to each {@link AccessControlled} class */
   private final Map <String, RoleMap> grantedRoles = new HashMap < String, RoleMap >();
@@ -94,7 +97,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    */
   @Override
   public SidACL getRootACL() {
+    LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getRootACL(): start");
     RoleMap root = getRoleMap(GLOBAL);
+    LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getRootACL(): return root.getACL(RoleType.Global, null)");
     return root.getACL(RoleType.Global, null);
   }
 
@@ -107,15 +112,21 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    */
    private ACL getACL(String roleMapName, String itemName, RoleType roleType, AccessControlled item)
    {
+     LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getACL(roleMapName={0}, itemName={1}, roleType={2}, item={3}): start", new Object[] {roleMapName, itemName, roleType, item} );
      SidACL acl;
      RoleMap roleMap = grantedRoles.get(roleMapName);
+     LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getACL(): roleMap={0}", roleMap);
      if(roleMap == null) {
+       LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getACL(): roleMap=null");
+       LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getACL(): acl=getRootACL()");
        acl = getRootACL();
      }
      else {
        // Create a sub-RoleMap matching the project name, and create an inheriting from root ACL
+       LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getACL(): acl = roleMap.newMatchingRoleMap(itemName).getACL(roleType, item).newInheritingACL(getRootACL())");
        acl = roleMap.newMatchingRoleMap(itemName).getACL(roleType, item).newInheritingACL(getRootACL());
      }
+     LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getACL(): return acl={0}", acl);
      return acl;   
    }
   
@@ -126,16 +137,19 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    */
     @Override
     public ACL getACL(Job<?,?> project) {
+      LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getACL(Job<?,?> project={0})", (AbstractItem) project);
       return getACL((AbstractItem) project);
     }
 
     @Override
     public ACL getACL(AbstractItem project) {
+      LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getACL(AbstractItem project={0})", project);
       return getACL(PROJECT, project.getFullName(), RoleType.Project, project);
     }
 
     @Override
     public ACL getACL(Computer computer) {
+       LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getACL(Computer computer={0}", computer);
        return getACL(SLAVE, computer.getName(), RoleType.Slave, computer);
     }
   
@@ -145,11 +159,14 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    */
   @Override
   public Collection<String> getGroups() {
+    LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getGroups(): start");
     Set<String> sids = new HashSet<String>();
     for(Map.Entry entry : this.grantedRoles.entrySet()) {
       RoleMap roleMap = (RoleMap) entry.getValue();
+      LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getGroups(): roleMap={0}", roleMap);
       sids.addAll(roleMap.getSids(true));
     }
+    LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getGroups(): return sids={0}", sids);
     return sids;
   }
 
@@ -160,10 +177,15 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @return All roles from the global {@link RoleMap}
    */
   public SortedMap<Role, Set<String>> getGrantedRoles(String type) {
+    LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getGrantedRoles(type={0}): start", type);
     RoleMap roleMap = this.getRoleMap(type);
+    LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getGrantedRoles(type={0}): roleMap={2}", new Object[] {type, roleMap});
     if(roleMap != null) {
+      LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getGrantedRoles(type={0}): return roleMap.getGrantedRoles()", type);
       return roleMap.getGrantedRoles();
     }
+    LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getGrantedRoles(type={0}): roleMap=null", type);
+    LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getGrantedRoles(type={0}): return null", type);
     return null;
   }
 
@@ -173,10 +195,15 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @return All SIDs from the specified {@link RoleMap}.
    */
   public Set<String> getSIDs(String type) {
+    LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getSIDs(type={0}): start", type);
     RoleMap roleMap = this.getRoleMap(type);
+    LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getSIDs(type={0}): roleMap={1}", new Object[] {type, roleMap});
     if(roleMap != null) {
+      LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getSIDs(type={0}): return roleMap.getSids()", type);
       return roleMap.getSids();
     }
+      LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getSIDs(type={0}): roleMap=null", type);
+      LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getSIDs(type={0}): return null", type);
     return null;
   }
 
@@ -186,6 +213,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @return The associated {@link RoleMap}
    */
   private RoleMap getRoleMap(String type) {
+    LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getRoleMap(type={0}): start", type);
     RoleMap map;
     if(grantedRoles.containsKey(type)) {
        map = grantedRoles.get(type);
@@ -195,6 +223,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       map = new RoleMap();
       grantedRoles.put(type, map);
     }
+    LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getRoleMap(type={0}): return map={1}", new Object[] {type, map});
     return map;
   }
 
@@ -205,6 +234,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * since it exposes all the security config.</p>
    */
   private Map<String, RoleMap> getRoleMaps() {
+    LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getRoleMaps(): start");
+    LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getRoleMaps(): return grantedRoles={0}", grantedRoles);
     return grantedRoles;
   }
 
@@ -214,13 +245,18 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param role The {@link Role} to add
    */
   private void addRole(String type, Role role) {
+    LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.addRole(type={0}, role={1}): start", new Object[] {type, role} );
     RoleMap roleMap = this.grantedRoles.get(type);
+    LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.addRole(type={0}, role={1}): roleMap={2}", new Object[] {type, role, roleMap} );
     if(roleMap != null) {
+      LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.addRole(type={0}, role={1}): roleMap.addRole(role)", new Object[] {type, role} );
       roleMap.addRole(role);
     } else {
       // Create the RoleMap if it doesnt exist
       roleMap = new RoleMap();
+      LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.addRole(type={0}, role={1}): roleMap.addRole(role)", new Object[] {type, role} );
       roleMap.addRole(role);
+      LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.addRole(type={0}, role={1}): grantedRoles.put({0}, {2})", new Object[] {type, role, roleMap} );
       grantedRoles.put(type, roleMap);
     }
   }
@@ -232,9 +268,12 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param sid The sid to assign to
    */
   private void assignRole(String type, Role role, String sid) {
+    LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.assignRole(type={0}, role={1}, sid={2}): start", new Object[] {type, role, sid} );
     RoleMap roleMap = this.grantedRoles.get(type);
+    LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.assignRole(type={0}, role={1}, sid={2}): roleMap={3}", new Object[] {type, role, sid, roleMap} );
     if(roleMap != null && roleMap.hasRole(role)) {
       roleMap.assignRole(role, sid);
+      LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.assignRole(type={0}, role={1}, sid={2}): roleMap.assignRole(role={1}, sid={3})", new Object[] {type, role, sid, roleMap} );
     }
   }
 
@@ -561,7 +600,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * @return Sid of the current user
      */
     private String getCurrentUser() {
+      LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getCurrentUser(): start");
       PrincipalSid currentUser = new PrincipalSid(Hudson.getAuthentication());
+      LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getCurrentUser(): return currentUser.getPrincipal()={0}", currentUser.getPrincipal());
       return currentUser.getPrincipal();
     }
 
@@ -569,32 +610,63 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * Get the needed permissions groups.
      */
     public List<PermissionGroup> getGroups(String type) {
+        LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): start", type);
         List<PermissionGroup> groups;
         if(type.equals(GLOBAL)) {
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): goups=PermissionGroup.getAll()", type);
             groups = new ArrayList<PermissionGroup>(PermissionGroup.getAll());
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): goups={1}", new Object[] {type, groups});
             groups.remove(PermissionGroup.get(Permission.class));
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): groups.remove(Permission.class)", type);
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): goups={1}", new Object[] {type, groups});
         }
         else if(type.equals(PROJECT)) {
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): goups=PermissionGroup.getAll()", type);
             groups = new ArrayList<PermissionGroup>(PermissionGroup.getAll());
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): goups={1}", new Object[] {type, groups});
             groups.remove(PermissionGroup.get(Permission.class));
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): groups.remove(Permission.class)", type);
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): goups={1}", new Object[] {type, groups});
             groups.remove(PermissionGroup.get(Hudson.class));
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): groups.remove(Hudson.class)", type);
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): goups={1}", new Object[] {type, groups});
             groups.remove(PermissionGroup.get(Computer.class));
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): groups.remove(Computer.class)", type);
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): goups={1}", new Object[] {type, groups});
             groups.remove(PermissionGroup.get(View.class));
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): groups.remove(View.class)", type);
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): goups={1}", new Object[] {type, groups});
         }
         else if (type.equals(SLAVE)) {
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): goups=PermissionGroup.getAll()", type);
             groups = new ArrayList<PermissionGroup>(PermissionGroup.getAll());
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): goups={1}", new Object[] {type, groups});
             groups.remove(PermissionGroup.get(Permission.class));
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): groups.remove(Permission.class)", type);
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): goups={1}", new Object[] {type, groups});
             groups.remove(PermissionGroup.get(Hudson.class));
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): groups.remove(Hudson.class)", type);
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): goups={1}", new Object[] {type, groups});
             groups.remove(PermissionGroup.get(View.class));
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): groups.remove(View.class)", type);
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): goups={1}", new Object[] {type, groups});
             
             // Project, SCM and Run permissions 
             groups.remove(PermissionGroup.get(Item.class));
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): groups.remove(Item.class)", type);
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): goups={1}", new Object[] {type, groups});
             groups.remove(PermissionGroup.get(SCM.class));
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): groups.remove(SCM.class)", type);
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): goups={1}", new Object[] {type, groups});
             groups.remove(PermissionGroup.get(Run.class));
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): groups.remove(Run.class)", type);
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): goups={1}", new Object[] {type, groups});
         }
         else {
+            LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): goups=null", type);
             groups = null;
         }
+        LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.getGroups(type={0}): return goups={1}", new Object[] {type, groups});
         return groups;
     }
 
@@ -602,16 +674,21 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * Check if the permission should be displayed.
      */
     public boolean showPermission(String type, Permission p) {
+      LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.showPermission(type={0}, p={1}): start", new Object[] {type, p});
       if(type.equals(GLOBAL)) {
+        LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.showPermission(type={0}, p={1}): return showPermission(Permission)", new Object[] {type, p});
         return showPermission(p);
       }
       else if(type.equals(PROJECT)) {
+        LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.showPermission(type={0}, p={1}): return p == Item.CREATE && isCreateAllowed() && p.getEnabled() || p != Item.CREATE && p.getEnabled()", new Object[] {type, p});
         return p == Item.CREATE && isCreateAllowed() && p.getEnabled() || p != Item.CREATE && p.getEnabled();
       }
       else if (type.equals(SLAVE)) {
+          LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.showPermission(type={0}, p={1}): return p!=Computer.CREATE && p.getEnabled()", new Object[] {type, p});
           return p!=Computer.CREATE && p.getEnabled();
       }
       else {
+        LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.DescriptorImpl.showPermission(type={0}, p={1}): return false", new Object[] {type, p});
         return false;
       }
     }
