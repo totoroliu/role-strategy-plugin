@@ -87,6 +87,34 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public final static String MACRO_USER  = "userMacros";
   
   private static final Logger LOGGER = Logger.getLogger(RoleBasedAuthorizationStrategy.class.getName());
+
+  private static String printAllStackTraces() {
+      Thread currentThread = java.lang.Thread.currentThread();
+      String stackTraces = "Current Thread: " + currentThread.getName() + " (" + currentThread.getId() + ")\n";
+      Map liveThreads = currentThread.getAllStackTraces();
+      for (java.util.Iterator i = liveThreads.keySet().iterator(); i.hasNext(); ) {
+        Thread key = (Thread)i.next();
+	stackTraces += "Thread " + key.getName() + "\n";
+        //LOGGER.log(Level.WARNING, "Thread {0}", key.getName());
+          StackTraceElement[] trace = (StackTraceElement[])liveThreads.get(key);
+          for (int j = 0; j < trace.length; j++) {
+              stackTraces += "\t at " + trace[j] + "\n";
+              //LOGGER.log(Level.WARNING, "\tat {0}", trace[j]);
+          }
+      }
+      return stackTraces;
+  }
+  private static String printCurrentStackTraces() {
+      Thread currentThread = java.lang.Thread.currentThread();
+      String stackTraces = "Current Thread: " + currentThread.getName() + " (" + currentThread.getId() + ")\n";
+      StackTraceElement[] trace = currentThread.getStackTrace();
+      //LOGGER.log(Level.WARNING, "Thread {0}", key.getName());
+      for (int j = 0; j < trace.length; j++) {
+          stackTraces += "\t at " + trace[j] + "\n";
+          //LOGGER.log(Level.WARNING, "\tat {0}", trace[j]);
+      }
+      return stackTraces;
+  }
   
   /** {@link RoleMap}s associated to each {@link AccessControlled} class */
   private final Map <String, RoleMap> grantedRoles = new HashMap < String, RoleMap >();
@@ -113,6 +141,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    private ACL getACL(String roleMapName, String itemName, RoleType roleType, AccessControlled item)
    {
      LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getACL(roleMapName={0}, itemName={1}, roleType={2}, item={3}): start", new Object[] {roleMapName, itemName, roleType, item} );
+     LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getACL(roleMapName={0}, itemName={1}, roleType={2}, item={3}): Thread.getAllStackTraces()=\n{4}\n", new Object[] {roleMapName, itemName, roleType, item, printAllStackTraces()} );
      SidACL acl;
      RoleMap roleMap = grantedRoles.get(roleMapName);
      LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getACL(): roleMap={0}", roleMap);
@@ -143,7 +172,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
     @Override
     public ACL getACL(AbstractItem project) {
-      LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getACL(AbstractItem project={0})", project);
+      LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getACL(AbstractItem project={0}): start", project);
+      LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getACL(AbstractItem project={0}): Thread.getAllStackTraces()=\n{1}\n", new Object[] {project, printAllStackTraces()} );
+      LOGGER.log(Level.INFO, "OUT: RoleBasedAuthorizationStrategy.getACL(AbstractItem project={0}): return getACL(PROJECT, project.getFullName(), RoleType.Project, project)", project);
       return getACL(PROJECT, project.getFullName(), RoleType.Project, project);
     }
 
